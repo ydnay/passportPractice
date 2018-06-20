@@ -35,7 +35,9 @@ passport.deserializeUser((id, cb) => {
 });
 
 app.use(flash());
-passport.use(new LocalStrategy({passReqToCallback: true}, (username, password, next) => {
+passport.use(new LocalStrategy({
+  passReqToCallback: true
+}, (req, username, password, next) => {
   User.findOne({ username }, (err, user) => {
     if (err) {
       return next(err);
