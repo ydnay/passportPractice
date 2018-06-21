@@ -17,7 +17,7 @@ const app = express();
 const ensureLogin = require("connect-ensure-login");
 const flash = require("connect-flash");
 const FbStrategy = require('passport-facebook').Strategy;
-
+const GoogleStrategy = require("passport-google-oauth").OAuth2Strategy;
 
 passport.use(new FbStrategy({
   clientID: "1947212642020064",
@@ -34,6 +34,33 @@ passport.use(new FbStrategy({
 
     const newUser = new User({
       facebookID: profile.id
+    });
+
+    newUser.save((err) => {
+      if (err) {
+        return done(err);
+      }
+      done(null, newUser);
+    });
+  });
+
+}));
+
+passport.use(new GoogleStrategy({
+  clientID: "641648474670-4p05pn98b0abtta3pbfafh0cnojl8ri8.apps.googleusercontent.com",
+  clientSecret: "stb4JH9dut5QpLWnWINwQiHB",
+  callbackURL: "/auth/google/callback"
+}, (accessToken, refreshToken, profile, done) => {
+  User.findOne({ googleID: profile.id }, (err, user) => {
+    if (err) {
+      return done(err);
+    }
+    if (user) {
+      return done(null, user);
+    }
+
+    const newUser = new User({
+      googleID: profile.id
     });
 
     newUser.save((err) => {
