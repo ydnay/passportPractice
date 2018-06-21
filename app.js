@@ -16,12 +16,36 @@ const User = require("./models/user");
 const app = express();
 const ensureLogin = require("connect-ensure-login");
 const flash = require("connect-flash");
+const FbStrategy = require('passport-facebook').Strategy;
 
-app.use(session({
-  secret: "our-passport-local-strategy-app",
-  resave: true,
-  saveUninitialized: true
+
+passport.use(new FbStrategy({
+  clientID: "1947212642020064",
+  clientSecret: "c2a95d0b0ddde76476e4b00ae432cf67",
+  callbackURL: "/auth/facebook/callback"
+}, (accessToken, refreshToken, profile, done) => {
+  User.findOne({ facebookID: profile.id }, (err, user) => {
+    if (err) {
+      return done(err);
+    }
+    if (user) {
+      return done(null, user);
+    }
+
+    const newUser = new User({
+      facebookID: profile.id
+    });
+
+    newUser.save((err) => {
+      if (err) {
+        return done(err);
+      }
+      done(null, newUser);
+    });
+  });
+
 }));
+
 
 passport.serializeUser((user, cb) => {
   cb(null, user._id);
@@ -35,23 +59,26 @@ passport.deserializeUser((id, cb) => {
 });
 
 app.use(flash());
-passport.use(new LocalStrategy({
-  passReqToCallback: true
-}, (req, username, password, next) => {
-  User.findOne({ username }, (err, user) => {
-    if (err) {
-      return next(err);
-    }
-    if (!user) {
-      return next(null, false, { message: "Incorrect username" });
-    }
-    if (!bcrypt.compareSync(password, user.password)) {
-      return next(null, false, { message: "Incorrect password" });
-    }
 
-    return next(null, user);
-  });
-}));
+
+
+// passport.use(new LocalStrategy({
+//   passReqToCallback: true
+// }, (req, username, password, next) => {
+//   User.findOne({ username }, (err, user) => {
+//     if (err) {
+//       return next(err);
+//     }
+//     if (!user) {
+//       return next(null, false, { message: "Incorrect username" });
+//     }
+//     if (!bcrypt.compareSync(password, user.password)) {
+//       return next(null, false, { message: "Incorrect password" });
+//     }
+
+//     return next(null, user);
+//   });
+// }));
 
 app.use(passport.initialize());
 app.use(passport.session());
@@ -74,6 +101,11 @@ app.use(logger('dev'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
+app.use(session({
+  secret: "our-passport-local-strategy-app",
+  resave: true,
+  saveUninitialized: true
+}));
 
 // Express View engine setup
 
